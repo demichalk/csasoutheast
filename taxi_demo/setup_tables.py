@@ -135,7 +135,7 @@ dbutils.fs.rm(f"abfss://lake@{lake_name}/bronze/taxidemo/zones", True)
 # MAGIC   service_zone string
 # MAGIC )
 # MAGIC USING delta
-# MAGIC LOCATION 'abfss://lake@fieldengdeveastus2adls.dfs.core.windows.net/bronze/taxidemo/zones.delta'
+# MAGIC LOCATION 'abfss://lake@fieldengdeveastus2adls.dfs.core.windows.net/bronze/taxidemo/zones'
 
 # COMMAND ----------
 

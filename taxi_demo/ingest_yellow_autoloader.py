@@ -109,4 +109,4 @@ tripdata_bronze_df.createOrReplaceTempView("tripdata_bronze_stream")
 
 # COMMAND ----------
 
-# MAGIC %sql SELECT * FROM tripdata_bronze where color='yellow'
+# MAGIC %sql select * from tripdata_bronze

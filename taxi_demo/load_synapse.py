@@ -28,6 +28,6 @@ tripdata_silver_df = (
     .option("forwardSparkAzureStorageCredentials", "true") 
     .option("dbTable", "dbo.tripdata") 
     .option("checkpointLocation", f"abfss://lake@{lake_name}/silver/taxidemo/tripdata/synapse.checkpoint") 
-     .trigger(processingTime='1 minute')
+     .trigger(processingTime='15 seconds')
     .start()
 )

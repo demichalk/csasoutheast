@@ -70,7 +70,6 @@ yellow_201901_df = (
       .schema(yellow_schema)
       .option("header",True)
       .load("dbfs:/databricks-datasets/nyctaxi/tripdata/yellow/yellow_tripdata_2019*.csv.gz")
-      .where("CAST(tpep_pickup_datetime as timestamp) > '2018-12-31T23:59:59' AND CAST(tpep_pickup_datetime as timestamp) < '2021-01-01T00:00:00'")
       .orderBy(col("tpep_pickup_datetime").asc())
 )
 

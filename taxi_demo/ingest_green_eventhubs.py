@@ -19,6 +19,7 @@
 import json
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, DoubleType
 from pyspark.sql.functions import from_json, col, lit
+from pyspark.sql.avro.functions import from_avro
 
 eh_stream_conf = {
   'eventhubs.connectionString' : eh_connection_encrypted
@@ -31,28 +32,35 @@ start_pos = { "offset": -1,
             }
 eh_stream_conf["eventhubs.startingPosition"] = json.dumps(start_pos)
 
-green_schema = StructType([
-  StructField("VendorID",IntegerType()),
-  StructField("lpep_pickup_datetime",StringType()),
-  StructField("lpep_dropoff_datetime",StringType()),
-  StructField("store_and_fwd_flag",StringType()),
-  StructField("RatecodeID",IntegerType()),
-  StructField("PULocationID",IntegerType()),
-  StructField("DOLocationID",IntegerType()),
-  StructField("passenger_count",IntegerType()),
-  StructField("trip_distance",DoubleType()),
-  StructField("fare_amount",DoubleType()),
-  StructField("extra",DoubleType()),
-  StructField("mta_tax",DoubleType()),
-  StructField("tip_amount",DoubleType()),
-  StructField("tolls_amount",DoubleType()),
-  StructField("ehail_fee",DoubleType()),
-  StructField("improvement_surcharge",DoubleType()),
-  StructField("total_amount",DoubleType()),
-  StructField("payment_type",IntegerType()),
-  StructField("trip_type",IntegerType()),
-  StructField("congestion_surcharge",DoubleType()),
-])
+green_avro_schema = """
+ {
+   "type":"record",
+   "name":"topLevelRecord",
+   "fields":
+     [
+       {"name":"VendorID","type":["int","null"]},
+       {"name":"lpep_pickup_datetime","type":["string","null"]},
+       {"name":"lpep_dropoff_datetime","type":["string","null"]},
+       {"name":"store_and_fwd_flag","type":["string","null"]},
+       {"name":"RatecodeID","type":["int","null"]},
+       {"name":"PULocationID","type":["int","null"]},
+       {"name":"DOLocationID","type":["int","null"]},
+       {"name":"passenger_count","type":["int","null"]},
+       {"name":"trip_distance","type":["double","null"]},
+       {"name":"fare_amount","type":["double","null"]},
+       {"name":"extra","type":["double","null"]},
+       {"name":"mta_tax","type":["double","null"]},
+       {"name":"tip_amount","type":["double","null"]},
+       {"name":"tolls_amount","type":["double","null"]},
+       {"name":"ehail_fee","type":["double","null"]},
+       {"name":"improvement_surcharge","type":["double","null"]},
+       {"name":"total_amount","type":["double","null"]},
+       {"name":"payment_type","type":["int","null"]},
+       {"name":"trip_type","type":["int","null"]},
+       {"name":"congestion_surcharge","type":["double","null"]}
+     ]
+}
+"""
 
 green_ehub_df = (
   spark
@@ -60,9 +68,8 @@ green_ehub_df = (
     .format("eventhubs") 
     .options(**eh_stream_conf) 
     .load()
-    .select(col("body").cast(StringType()))
-    .withColumn("bodyJson",from_json(col("body"),green_schema))
-    .select("bodyJson.*")
+    .withColumn("body",from_avro(col("body"),green_avro_schema))
+    .select("body.*")
 )
 
 # COMMAND ----------

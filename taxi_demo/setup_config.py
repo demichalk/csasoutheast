@@ -56,6 +56,3 @@ spark.conf.set(f"fs.azure.account.oauth2.client.endpoint.{lake_name}", f"https:/
 # COMMAND ----------
 
 spark.sql("USE taxidemo")
-
-# COMMAND ----------
-
