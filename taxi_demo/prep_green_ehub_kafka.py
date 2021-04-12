@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC 
 # MAGIC #Taxi Demo
-# MAGIC ##prep_green_eventhubs notebook
+# MAGIC ##prep_green_ehub_kafka notebook
 # MAGIC <br />
 # MAGIC - Creates event hub messages from source Green Taxi cab trips
 
@@ -13,7 +13,7 @@
 # COMMAND ----------
 
 # MAGIC %md 
-# MAGIC #### Pull the first month of Green Taxi CSV source files and put them into EventHubs
+# MAGIC #### Pull the first month of Green Taxi CSV source files and put them into EventHubs using Kafka API
 
 # COMMAND ----------
 
@@ -69,14 +69,6 @@ display(green_2019_df)
 
 # COMMAND ----------
 
-eh_green_avro_df = green_2019_df.select(to_avro(struct(col("*"))).alias("body"))
-
-# COMMAND ----------
-
-display(eh_green_avro_df)
-
-# COMMAND ----------
-
 green_avro_schema = """
  {
    "type":"record",
@@ -106,28 +98,38 @@ green_avro_schema = """
      ]
 }
 """
-test_read_avro_df = eh_green_avro_df.select(from_avro(col("body"),green_avro_schema).alias("body"))
-display(test_read_avro_df)
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC #### Spark EventHubs Connector PySpark doc
-# MAGIC https://github.com/Azure/azure-event-hubs-spark/blob/master/docs/PySpark/structured-streaming-pyspark.md
+eh_green_kafka_df = green_2019_df.select(
+  to_avro(struct(col("lpep_pickup_datetime"))).alias("key"), 
+  to_avro(struct(col("*"))).alias("value")
+)
 
 # COMMAND ----------
 
-import datetime 
+display(eh_green_kafka_df)
 
-eh_write_conf = {
-  'eventhubs.connectionString' : eh_connection_encrypted,
-  'eventhubs.operationTimeout' : datetime.time(0,15,0).strftime("PT%HH%MM%SS")  # 15 minute timeout
-}
+# COMMAND ----------
 
-(
-  eh_green_avro_df
+test_read_kafka_df = eh_green_kafka_df.select(from_avro(col("value"),green_avro_schema).alias("value"))
+display(test_read_kafka_df)
+
+# COMMAND ----------
+
+ (
+   eh_green_kafka_df
     .write
-    .format("eventhubs") 
-    .options(**eh_write_conf) 
+    .format("kafka") 
+    .option("topic", kafka_topic)
+    .option("kafka.bootstrap.servers", kafka_bootstrap_servers) 
+    .option("kafka.sasl.mechanism", "PLAIN") 
+    .option("kafka.security.protocol", "SASL_SSL") 
+    .option("kafka.sasl.jaas.config", kafka_sasl_jaas_config) 
+    .option("kafka.session.timeout.ms", "60000") 
+    .option("kafka.request.timeout.ms", "30000") 
+    .option("kafka.group.id", "$Default") 
+    .option("kafka.batch.size", 5000) 
+    .option("failOnDataLoss", "false") 
     .save()
 )

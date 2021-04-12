@@ -53,12 +53,9 @@ CREATE TABLE IF NOT EXISTS tripdata_bronze
 )
 USING delta
 LOCATION 'abfss://lake@{lake_name}/bronze/taxidemo/tripdata'
+TBLPROPERTIES (delta.autoOptimize.optimizeWrite = true, delta.autoOptimize.autoCompact = true)
 """
 spark.sql(sql)
-
-# COMMAND ----------
-
-# MAGIC %sql ALTER TABLE tripdata_bronze SET TBLPROPERTIES (delta.autoOptimize.optimizeWrite = true, delta.autoOptimize.autoCompact = true)
 
 # COMMAND ----------
 
@@ -96,12 +93,44 @@ CREATE TABLE IF NOT EXISTS tripdata_silver
 )
 USING delta
 LOCATION 'abfss://lake@{lake_name}/silver/taxidemo/tripdata'
+TBLPROPERTIES (delta.autoOptimize.optimizeWrite = true, delta.autoOptimize.autoCompact = true)
 """
 spark.sql(sql)
 
 # COMMAND ----------
 
-# MAGIC %sql ALTER TABLE tripdata_silver SET TBLPROPERTIES (delta.autoOptimize.optimizeWrite = true, delta.autoOptimize.autoCompact = true)
+# MAGIC %md 
+# MAGIC ##Setup Tripdata Gold Delta Table
+
+# COMMAND ----------
+
+dbutils.fs.rm(f"abfss://lake@{lake_name}/gold/taxidemo/tripdata", True)
+
+# COMMAND ----------
+
+# MAGIC %sql 
+# MAGIC DROP TABLE IF EXISTS tripdata_gold
+
+# COMMAND ----------
+
+sql = f"""
+CREATE TABLE IF NOT EXISTS tripdata_gold
+(
+  color string,
+  pickup_borough string, 
+  pickup_zone_name string, 
+  dropoff_borough string, 
+  dropoff_zone_name string, 
+  total_passengers long, 
+  total_distance double,
+  total_minutes double,
+  total_amount double 
+)
+USING delta
+LOCATION 'abfss://lake@{lake_name}/gold/taxidemo/tripdata'
+TBLPROPERTIES (delta.autoOptimize.optimizeWrite = true, delta.autoOptimize.autoCompact = true)
+"""
+spark.sql(sql)
 
 # COMMAND ----------
 

@@ -11,12 +11,7 @@
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Check Blob drop folder for JSON files
-
-# COMMAND ----------
-
-dbutils.fs.ls(f"wasbs://ingest@{blob_name}/drop")
+spark.conf.set("spark.sql.shuffle.partitions", cluster_cores)
 
 # COMMAND ----------
 
@@ -58,15 +53,14 @@ yellow_auto_df = (
     .option("cloudFiles.clientSecret", client_secret)
     .option("cloudFiles.includeExistingFiles", True)
     .option("cloudFiles.maxFilesPerTrigger", 100)    
-    .option("cloudFiles.useNotifications", True)
-    .option("cloudFiles.validateOptions", True)    
+    .option("cloudFiles.useNotifications", True) 
     .load(f"wasbs://ingest@{blob_name}/drop/*.json")
 )
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## AutoLoader stream into Tripdata Bronze sink
+# MAGIC ## AutoLoader stream into Tripdata Bronze Delta Lake table sink
 
 # COMMAND ----------
 
@@ -81,32 +75,5 @@ from pyspark.sql.functions import lit, col
     .option("checkpointLocation", f"abfss://lake@{lake_name}/bronze/taxidemo/tripdata/yellow.checkpoint") 
     .trigger(processingTime='15 seconds') # .trigger(once=True) to demo trigger once
     .outputMode("append")
-    .start(f"abfss://lake@{lake_name}/bronze/taxidemo/tripdata")
+    .table("tripdata_bronze")
 )
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Read stream from the Tripdata Bronze Delta Lake table
-
-# COMMAND ----------
-
-tripdata_bronze_df = spark.readStream.format("delta").load(f"abfss://lake@{lake_name}/bronze/taxidemo/tripdata")
-tripdata_bronze_df.createOrReplaceTempView("tripdata_bronze_stream")
-
-# COMMAND ----------
-
-# MAGIC %sql SELECT COUNT(*) FROM tripdata_bronze_stream where color='yellow'
-
-# COMMAND ----------
-
-# MAGIC %md 
-# MAGIC ## Query Tripdata Bronze Delta table
-
-# COMMAND ----------
-
-# MAGIC %sql SELECT COUNT(*) FROM tripdata_bronze where color='yellow'
-
-# COMMAND ----------
-
-# MAGIC %sql select * from tripdata_bronze

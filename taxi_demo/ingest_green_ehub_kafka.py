@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC 
 # MAGIC #Taxi Demo
-# MAGIC ### ingest_green_eventhubs notebook
+# MAGIC ### ingest_green_ehub_kafka notebook
 # MAGIC <br />
 
 # COMMAND ----------
@@ -16,25 +16,9 @@ spark.conf.set("spark.sql.shuffle.partitions", cluster_cores)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Create Event Hubs stream source
+# MAGIC ## Create Event Hubs Kafka API stream source
 
 # COMMAND ----------
-
-import json
-from pyspark.sql.types import StructType, StructField, IntegerType, StringType, DoubleType
-from pyspark.sql.functions import from_json, col, lit
-from pyspark.sql.avro.functions import from_avro
-
-eh_stream_conf = {
-  'eventhubs.connectionString' : eh_connection_encrypted
-}
-eh_stream_conf['maxEventsPerTrigger'] = 5000
-start_pos = { "offset": -1,
-              "seqNo": -1,           
-              "enqueuedTime": None, 
-              "isInclusive": True
-            }
-eh_stream_conf["eventhubs.startingPosition"] = json.dumps(start_pos)
 
 green_avro_schema = """
  {
@@ -66,14 +50,31 @@ green_avro_schema = """
 }
 """
 
+# COMMAND ----------
+
+import json
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType, DoubleType
+from pyspark.sql.functions import col, lit
+from pyspark.sql.avro.functions import from_avro
+
+
 green_ehub_df = (
   spark
     .readStream
-    .format("eventhubs") 
-    .options(**eh_stream_conf) 
+    .format("kafka") 
+    .option("subscribe", kafka_topic)
+    .option("kafka.bootstrap.servers", kafka_bootstrap_servers) 
+    .option("kafka.sasl.mechanism", "PLAIN") 
+    .option("kafka.security.protocol", "SASL_SSL") 
+    .option("kafka.sasl.jaas.config", kafka_sasl_jaas_config) 
+    .option("kafka.session.timeout.ms", "60000") 
+    .option("kafka.request.timeout.ms", "30000") 
+    .option("kafka.group.id", "$Default") 
+    .option("failOnDataLoss", "false") 
+    .option("startingOffsets", "earliest")
     .load()
-    .withColumn("body",from_avro(col("body"),green_avro_schema))
-    .select("body.*")
+    .withColumn("value",from_avro(col("value"),green_avro_schema))
+    .select("value.*")
 )
 
 # COMMAND ----------

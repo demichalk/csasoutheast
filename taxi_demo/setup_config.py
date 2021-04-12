@@ -30,6 +30,11 @@ subscription_id = "3f2e4d32-8e8d-46d6-82bc-5bb8d962328b"
 eh_connection_string = dbutils.secrets.get("taxi-demo-scope","taxi-eh-connection")
 eh_connection_encrypted = sc._jvm.org.apache.spark.eventhubs.EventHubsUtils.encrypt(eh_connection_string)
 synapse_jdbc_url = dbutils.secrets.get("taxi-demo-scope","taxi-synapse-jdbc-url") 
+cluster_cores = 32
+
+kafka_topic = "taxidemo"
+kafka_bootstrap_servers = "fieldengdeveastus2ehb.servicebus.windows.net:9093"
+kafka_sasl_jaas_config = f"kafkashaded.org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$ConnectionString\" password=\"{eh_connection_string}\";"
 
 # COMMAND ----------
 
@@ -46,6 +51,17 @@ spark.conf.set(f"fs.azure.account.oauth2.client.endpoint.{lake_name}", f"https:/
 # COMMAND ----------
 
 
+
+# COMMAND ----------
+
+def stop_all_streams():
+    print("Stopping all streams")
+    for s in spark.streams.active:
+        try:
+            s.stop()
+        except:
+            pass
+    print("Stopped all streams")
 
 # COMMAND ----------
 
